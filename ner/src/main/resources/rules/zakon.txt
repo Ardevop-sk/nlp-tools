@@ -1,0 +1,14 @@
+( ["§"|"parag."] [{ner:NUMBER}]{1,} )	PARAGRAF
+( [{word:","}]{0,} [{word:"ods."}] [{ner:NUMBER}]{1,} )	ODSTAVEC
+( [{word:"ods."}] [{ner:NUMBER}]{1,} [{word:"a"}] [{ner:NUMBER}]{1,} )	ODSTAVEC
+( [{word:","}]{0,} [{word:"písm."}] [{word:/[a-z]\)/}] )	PISMENO
+( [{lemma:"trestný"}|"Tr."|{lemma:"cestný"}|{lemma:"stavebný"}|{lemma:"katastrálny"}|{lemma:"živnostenský"}] [{lemma:"zákon"}|"z."] )	ZAKON
+( [{lemma:"obchodný"}|{lemma:"občiansky"}] [{lemma:"zákonník"}] )	ZAKON
+( [word:"CSP"|word:"C.S.P."|word:"C.s.p."] )	ZAKON
+( [{lemma:"civilný"}] [{lemma:"sporový"}] [{lemma:"poriadok"}] )	ZAKON
+( [{lemma:"občianský"}] [{lemma:"súdny"}] [{lemma:"poriadok"}] )	ZAKON
+( [{lemma:"správny"}] [{lemma:"súdny"}] [{lemma:"poriadok"}] )	ZAKON
+( [{lemma:"zákonník"}] [{lemma:"práce"}] )	ZAKON
+( [{lemma:"správny"}|{lemma:"exekučný "}|{lemma:"daňový"}]|[{lemma:"trestný"}|"Tr."] [{lemma:"poriadok"}] )	ZAKON
+( [word:/[0-9]{1,3}\/[0-9]{4}/] [word:"Z."] [word:"z."] )	ZAKON
+( [word:/[0-9]{1,3}\/[0-9]{4}/] [word:"Zb."|"SNR"] )	ZAKON

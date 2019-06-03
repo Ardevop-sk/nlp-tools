@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+  This file contains some false positive bugs detected by findbugs. Their
+  false positive nature has been analyzed individually and they have been
+  put here to instruct findbugs it must ignore them.
+-->
+<FindBugsFilter>
+  <!--<Match>
+      <Or>
+          <Class name="sk.essentialdata.ress.ov.extactor.data.AvroExtractedPodanie"/>
+          <Class name="sk.essentialdata.ress.ov.receiver.data.AvroNotification"/>
+          <Class name="sk.essentialdata.ress.ov.transformer.data.AvroTransformedPodanie"/>
+          <Class name="sk.essentialdata.ress.ov.extactor.data.AvroPodanie"/>
+          <Class name="sk.essentialdata.ress.ov.transformer.data.AdditionalTransformationFields"/>
+      </Or>
+      <Bug pattern="RI_REDUNDANT_INTERFACES"/>
+  </Match>-->
+</FindBugsFilter>
+

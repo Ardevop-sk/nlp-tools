@@ -1,0 +1,5 @@
+( [{ner:TITUL}] [{ner:MENO}] [{ner:PRIEZVISKO}|{word:/[\p{L}]+/}] "," [{ner:TITUL_ZA}] )	Osoba
+( [{ner:TITUL}] [{ner:MENO}] [{ner:PRIEZVISKO}] )	Osoba
+( [{ner:TITUL}] [{ner:"MENO,PRIEZVISKO"}] [{ner:PRIEZVISKO}] )	Osoba
+( [{ner:"MENO,PRIEZVISKO"}] [{ner:PRIEZVISKO}] )	Osoba
+( [{ner:MENO}] [{ner:PRIEZVISKO}] )	Osoba
