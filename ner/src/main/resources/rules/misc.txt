@@ -1,0 +1,9 @@
+pattern	ner	group
+( ["Okresný"|"Krajský"] "súd" [{ner:OBEC}] )	Sud	0
+( ["Okresný"|"Krajský"] "súd" [{ner:PERSON}] [{ner:PERSON}] )	Sud	0
+( "nar." [{ner:DATE}] )	Narodenie	0
+( [{lemma:"narodený"}|{lemma:"narodenie"}|{lemma:"narodeniny"}] ":"{0,1} ([{ner:DATE}]) )	Narodenie	1
+( "IČO" ":"{0,1} ([{word:/[0-9\p{Zs}]*/}]) )	ICO	0
+( [word:/[\p{Lu}]+[\p{Ll}]*/]{1,} ","{0,1} "s.r.o." )	Organizacia	0
+( [word:/[\p{Lu}]+[\p{Ll}]*/]{1,} ","{0,1} "a.s." )	Organizacia	0
+( [word:/[\p{Lu}]+[\p{Ll}]*/]{1,} ","{0,1} "k.s." )	Organizacia	0

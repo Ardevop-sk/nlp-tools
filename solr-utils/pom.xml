@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <parent>
+    <artifactId>nlp-tools</artifactId>
+    <groupId>sk.bednarik.nlp</groupId>
+    <version>1.1.0.RELEASE</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+
+  <artifactId>solr-utils</artifactId>
+
+  <dependencies>
+    <dependency>
+      <groupId>sk.bednarik.nlp</groupId>
+      <artifactId>stemmer</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>edu.stanford.nlp</groupId>
+          <artifactId>stanford-corenlp</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-analyzers-common</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>sk.bednarik.nlp</groupId>
+      <artifactId>lemmatizer</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>edu.stanford.nlp</groupId>
+          <artifactId>stanford-corenlp</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-analyzers-common</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-analyzers-common</artifactId>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+  <!--<build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>build-solr-tools</id>
+            <configuration>
+              <descriptorRefs>
+                <descriptorRef>jar-with-dependencies</descriptorRef>
+              </descriptorRefs>
+            </configuration>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+    </plugins>
+  </build>-->
+</project>

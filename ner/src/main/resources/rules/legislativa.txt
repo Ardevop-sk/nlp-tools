@@ -1,0 +1,2 @@
+( [{ner:PARAGRAF}]{2} [{ner:ODSTAVEC}]{0,} [{ner:PISMENO}]{0,} [{ner:ZAKON}]{1,3} )	LEGISLATIVA
+( [{ner:ZAKON}]{1,3} [{ner:PARAGRAF}]{2} [{ner:ODSTAVEC}]{0,} [{ner:PISMENO}]{0,}  )	LEGISLATIVA

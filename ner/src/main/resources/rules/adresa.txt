@@ -1,0 +1,3 @@
+( [{ner:ULICA}|{ner:"PRIEZVISKO,ULICA"}]{1,5} [{ner:NUMBER}|{word:/[0-9]+\/[0-9\p{L}]+/}] "," [{ner:NUMBER}]{0,} [{ner:"OBEC"}|{ner:"MENO,OBEC"}|{ner:"PRIEZVISKO,OBEC"}]{1,3} )	Adresa
+( "P.O.BOX" [{ner:NUMBER}] "," [{ner:NUMBER}] [{ner:NUMBER}] [{ner:"MENO,OBEC"}|{ner:OBEC}] [{ner:NUMBER}]{0,1} )	Adresa
+( [{ner:NUMBER}]{1,} [{ner:OBEC}|{ner:"MENO,OBEC"}] [{word:"č."}] [{ner:NUMBER}|{word:/[0-9]+\/[0-9\p{L}]+/}] )	Adresa

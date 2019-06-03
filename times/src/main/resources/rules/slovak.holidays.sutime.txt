@@ -1,0 +1,16 @@
+  ENV.defaults["stage"] = 1
+  ENV.defaults["ruleType"] = "tokens"
+
+  { (/novoročný/ /večer/ ) => IsoDate(NIL, 12, 31) }
+  { (/Nový/ /rok/ ) => IsoDate(NIL, 1, 1) }
+  { (/valentín/ ) => IsoDate(NIL, 2, 14) }
+  { (/prvý/ /apríl/) => IsoDate(NIL, 4, 1) }
+  { (/halloween/ ) => IsoDate(NIL, 10, 31) }
+  { ( (/vianoce/) | (/vianočný/ /večer/)) => IsoDate(NIL, 12, 24) }
+
+
+  { (/deň/ /matiek/) => JH_MOTHERS_DAY }
+  { (/deň/ /otcov/) => JH_FATHERS_DAY }
+  { (/sviatok/ /práce/) => JH_LABOUR_DAY }
+
+  { ((/veľkonočný/ /pondelok/)|(/veľká/ /noc/)) => JH_EASTER }

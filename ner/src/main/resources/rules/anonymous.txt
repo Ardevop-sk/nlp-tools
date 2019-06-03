@@ -1,0 +1,9 @@
+( [{gen:Adresa}]{0,} [{ner:ANONYMOUS}]{1,} [{gen:Adresa}]{0,} )	ANONYMOUS
+( [{gen:Osoba}]{0,} [{ner:ANONYMOUS}]{1,} [{gen:Osoba}]{0,} )	ANONYMOUS
+( [{gen:Podnikatel}]{0,} [{ner:ANONYMOUS}]{1,} [{gen:Podnikatel}]{0,} )	ANONYMOUS
+( [{gen:Nepodnikatel}]{0,} [{ner:ANONYMOUS}]{1,} [{gen:Nepodnikatel}]{0,} )	ANONYMOUS
+( [{gen:PravnickaOrganizacia}]{0,} [{ner:ANONYMOUS}]{1,} [{gen:PravnickaOrganizacia}]{0,} )	ANONYMOUS
+( [{gen:Pravnik}]{0,} [{ner:ANONYMOUS}]{1,} [{gen:Pravnik}]{0,} )	ANONYMOUS
+( [{stackedNer:Adresa}]{0,} [{ner:ANONYMOUS}]{1,} [{stackedNer:Adresa}]{0,} )	ANONYMOUS
+( [{stackedNer:Osoba}]{0,} [{ner:ANONYMOUS}]{1,} [{stackedNer:Osoba}]{0,} )	ANONYMOUS
+( [{stackedNer:Organizacia}]{0,} [{ner:ANONYMOUS}]{1,} [{stackedNer:Organizacia}]{0,} )	ANONYMOUS

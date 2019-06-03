@@ -1,0 +1,959 @@
+  ENV.defaults["stage.limitIters"] = 50
+
+  tokens = { type: "CLASS", value: "edu.stanford.nlp.ling.CoreAnnotations$TokensAnnotation" }
+  numtokens = { type: "CLASS", value: "edu.stanford.nlp.ling.CoreAnnotations$NumerizedTokensAnnotation" }
+
+  $TIMEOFDAY = "/ráno|popoludnie|večer|noc|poludnie|polnoc|olovrant|obed|večera|desiata|poobedie|dopoludnie|súmrak/|[{lemma:\"ráno\"}]|[{lemma:\"popoludnie\"}]|[{lemma:\"večer\"}]|[{lemma:\"noc\"}]|[{lemma:\"poludnie\"}]|[{lemma:\"polnoc\"}]|[{lemma:\"olovrant\"}]|[{lemma:\"obed\"}]|[{lemma:\"večera\"}]|[{lemma:\"desiata\"}]|[{lemma:\"poobedie\"}]|[{lemma:\"dopoludnie\"}]|[{lemma:\"súmrak\"}]";
+
+  $NUM = ( [ { numcomptype:NUMBER } ] );
+  $INT = ( [ { numcomptype:NUMBER } & !{ word:/.*\.\d+.*/} & !{ word:/.*,.*/ } ] );
+  $INTORD = ( [ ({ numcomptype:NUMBER } | { numcomptype:ORDINAL }) & !{ word:/.*\.\d+.*/} & !{ word:/.*,.*/ } ] );
+  $INT1000TO3000 = ( [ $INT & !{ word:/\+.*/} & { numcompvalue>1000 } & { numcompvalue<3000 } ] );
+  $INT1TO31 = ( [ $INTORD & !{ word:/\+.*/} & { numcompvalue>=1 } & { numcompvalue<=31 } ] );
+  $NUM_ORD = ( [ { numcomptype:ORDINAL } ] );
+
+  $INT_TIMES = ( $INT /krát/ | raz );
+  $REL_MOD = ( [{lemma:"ďaľší"}]|[{lemma:"nasledujúci"}]|[{lemma:"posledný"}]|[{lemma:"predchádzajúci"}]|[{lemma:"najbližší"}]|[{lemma:"minulý"}]|/ďaľší|nasledujúci|posledný|predchádzajúci|najbližší|minulý/ );
+  $FREQ_MOD = ( [{lemma:"každý"}]|/každý/|[{lemma:"každý"}] $NUM_ORD | /každý/ $NUM_ORD | [{lemma:"každý"}] [{lemma:"druhý"}]|[{lemma:"striedajúci"}] | /každý/ /druhý|striedajúci/? );
+  $EARLY_LATE_MOD = ( [{lemma:"neskorá"}]|[{lemma:"skorý"}] | /neskorá|skorý/ | [{lemma:"začiatok"}]|[{lemma:"počiatok"}]|[{lemma:"stred"}]|[{lemma:"koniec"}] | /začiatok|počiatok|stred|koniec/ | [{lemma:"neskoro"}]|[{lemma:"skoro"}] /v/ | /neskoro|skoro/ /v/ );
+  $APPROX_MOD = ( /okolo|skoro|presne|približne/ );
+  # TODO ako toto?
+  $YEAR = ( /[012]\d\d\d/ | /'\d\d/ | /'/ /\d\d/ | /\w+násť|dsať/ [ { numcompvalue<100 } & { numcompvalue>0 } & $INT ] );
+  $POSSIBLE_YEAR = ( $YEAR /a\.?d\.?|b\.?c\.?/? | $INT /a\.?d\.?|b\.?c\.?/ | $INT1000TO3000 );
+  $hasTemporal = "( { temporal::EXISTS } & {{ temporal.value != NON_TEMPORAL }} & !{{ tags[\"TIMEZONE\"] }} )"
+
+# TODO toto asi nebude fungovat ked to bude vysklonovane
+  # Decades
+  DECADES_MAP = {
+    "dvadsiate": "2X",
+    "tridsiate": "3X",
+    "štyridsiate": "4X",
+    "paťdesiate": "5X",
+    "šesťdesiate": "6X",
+    "sedemdesiate": "7X",
+    "osemdesiate": "8X",
+    "deväťdesiate": "9X"
+  }
+  $Decades = CreateRegex(Keys(DECADES_MAP))
+
+  # TODO toto asi nebude fungovat ked to bude vysklonovane
+  # Durations
+  TIMEUNIT_MAP = {
+    "rok": YEAR,
+    "mesiac": MONTH,
+    "deň": DAY,
+    "hodina": HOUR,
+    "hod": HOUR,
+    "minúta": MINUTE,
+    "min": MINUTE,
+    "sekunda": SECOND,
+    "sek": SECOND,
+    "milisekunda": MILLIS,
+    "milisek": MILLIS,
+    "týždeň": WEEK,
+    "polmesiac": FORTNIGHT,
+    "štvrťrok": QUARTER,
+    "storočie": CENTURY,
+    "storočia": CENTURY,
+    "tisícročie": MILLENNIUM,
+    "milénium": MILLENNIUM
+  }
+  $TEUnits = CreateRegex(Keys(TIMEUNIT_MAP))
+  # TODO toto asi nebude fungovat ked to bude vysklonovane
+  BASIC_NUMBER_MAP = {
+    "jeden": 1,
+    "dva": 2,
+    "try": 3,
+    "štyri": 4,
+    "päť": 5,
+    "šesť": 6,
+    "sedem": 7,
+    "osem": 8,
+    "deväť": 9,
+    "desať": 10,
+    "jedenásť": 11,
+    "dvanásť": 12,
+    "trinásť": 13,
+    "štrnásť": 14,
+    "pätnásť": 15,
+    "šesťnásť": 16,
+    "sedemnásť": 17,
+    "osemnásť": 18,
+    "devätnásť": 19,
+    "dvadsať": 20,
+    "tridsať": 30,
+    "štyridsať": 40,
+    "päťdesiat": 50,
+    "šesťdesiat": 60,
+    "sedemdesiat": 70,
+    "osemdesiat": 80,
+    "deväťdesiat": 90,
+    "sto": 100
+  }
+  $BasicNumTerm = CreateRegex(Keys(BASIC_NUMBER_MAP))
+  # TODO toto asi nebude fungovat ked to bude vysklonovane
+  BASIC_ORDINAL_MAP = {
+    "prvý": 1,
+    "druhý": 2,
+    "tretí": 3,
+    "štvrtý": 4,
+    "piaty": 5,
+    "šiesty": 6,
+    "siedmy": 7,
+    "ôsmy": 8,
+    "deviaty": 9,
+    "desiaty": 10,
+    "jedenásty": 11,
+    "dvanásty": 12,
+    "trinásty": 13,
+    "štrnásty": 14,
+    "pätnásty": 15,
+    "šestnásty": 16,
+    "sedemnásty": 17,
+    "osemnásty": 18,
+    "devätnásty": 19,
+    "dvadsiaty": 20,
+    "tridsiaty": 30,
+    "štyridsiaty": 40,
+    "päťdesiaty": 50,
+    "šesťdesiaty": 60,
+    "sedemdesiaty": 70,
+    "osemdestiaty": 80,
+    "deväťdesiaty": 90,
+    "stí": 100
+  }
+  $BasicOrdTerm = CreateRegex(Keys(BASIC_ORDINAL_MAP))
+
+  ########################################################################################################################
+
+  ENV.defaults["stage"] = 0
+  ENV.defaults["ruleType"] = "tokens"
+
+  { pattern: ( $POSSIBLE_YEAR ),
+    action: (
+	          Tag($0, "YEAR",
+                :case {
+				   $0 =~ ( /\w+teen|twenty/ [ $INT ] ) => Add(Multiply($0[0].numcompvalue, 100), $0[1].numcompvalue),
+				   $0 =~ ( /'/ /\d\d/ ) => Concat("XX", $0[1].word),
+				   $0 =~ ( /'\d\d/ ) => Concat("XX", $0[0].word.substring(1)),
+				   :else => $0[0].numcompvalue
+                }
+	          ),
+			  Tag($0, "YEAR_ERA",
+			    :case {
+				   $0 =~ ( $INT /a\.?d\.?/ ) => ERA_AD,
+				   $0 =~ ( $INT /b\.?c\.?/ ) => ERA_BC,
+				   :else => ERA_UNKNOWN
+				}
+		      )
+            )
+  }
+
+  # Operators
+  { pattern: ( /tento/|/táto/ ),
+	action: Tag($0, "TemporalOp", THIS) }
+  { pattern: ( [{lemma:"ďaľší"}]|/ďaľší/ ),
+	action: Tag($0, "TemporalOp", NEXT) }
+  { pattern: ( [{lemma:"nasledujúci"}]|/nasledujúci/ ),
+	action: Tag($0, "TemporalOp", NEXT)  }
+  { pattern: ( [{lemma:"predchádzajúci"}]|/predchádzajúci/ ),
+	action: Tag($0, "TemporalOp", PREV) }
+  { pattern: ( [{lemma:"posledný"}]|/posledný/ ),
+	action: Tag($0, "TemporalOp", PREV) }
+  { pattern: ( [{lemma:"budúci"}]|/budúci/ ),
+	action: Tag($0, "TemporalOp", NEXT_IMMEDIATE) }
+  { pattern: ( [{lemma:"minulý"}]|/minulý/ ),
+	action: Tag($0, "TemporalOp", PREV_IMMEDIATE) }
+
+  # Modifiers
+
+  # Early late modifiers
+  { pattern: ( [{lemma:"neskorý"}]|/neskorý/ | /na/ /konci/ | /koncom/  ),
+	action: Tag($0, "Modifier", "LATE") }
+  { pattern: ( [{lemma:"skorý"}]|/skorý/ | [{lemma:"začiatok"}] | /začiatkom/ | /na/ /začiatku/ ),
+	action: Tag($0, "Modifier", "EARLY") }
+  { pattern: ( /stredom/ | /v/ /strede/ ),
+	action: Tag($0, "Modifier", "MID") }
+
+  # Frequency modifiers
+  { pattern: ( [{lemma:"každý"}]|[{lemma:"všetky"}]| /každý/ | /všetky/ ),
+    action: ( Tag($0, "PTS.quant", $0), Tag($0, "PTS.multiple", 1 ) ) }
+  { pattern: ( [{lemma:"každý"}] ($NUM_ORD|$INT) |/každý/ ($NUM_ORD|$INT) ),
+    action: ( Tag($0, "PTS.quant", $0), Tag($0, "PTS.multiple", $1[0].numcompvalue ) ) }
+  { pattern: ( [{lemma:"každý"}] [{lemma:"druhý"}]| /každý/ /druhý/ | /striedavo/ ),
+    action: ( Tag($0, "PTS.quant", $0), Tag($0, "PTS.multiple", 2 ) ) }
+
+  # Approximate modifiers
+  { pattern: ( /okolo|približne|cca|asi/ ),
+	action: Tag($0, "Modifier", "APPROX") }
+  { pattern: ( /presne|určite/ ),
+	action: Tag($0, "Modifier", "EXACT") }
+
+  MESIAC_MAP = {
+    "januára" : "1",
+    "január" : "1",
+    "jan." : "1",
+    "februára" : "2",
+    "február" : "2",
+    "feb." : "2",
+    "marca" : "3",
+    "marec" : "3",
+    "mar." : "3",
+    "apríla" : "4",
+    "apríl" : "4",
+    "apr." : "4",
+    "mája" : "5",
+    "máj" : "5",
+    "júna" : "6",
+    "jún" : "6",
+    "júla" : "7",
+    "júl" : "7",
+    "augusta" : "8",
+    "august" : "8",
+    "aug." : "8",
+    "septembra" : "9",
+    "september" : "9",
+    "sep." : "9",
+    "októbra" : "10",
+    "október" : "10",
+    "okt." : "10",
+    "novembra" : "11",
+    "november" : "11",
+    "nov." : "11",
+    "decembra" : "12",
+    "december" : "12",
+    "dec." : "12"
+  }
+  $mesiace = CreateRegex(Keys(MESIAC_MAP))
+  # TODO toto asi nebude fungovat ked to bude vysklonovane
+  # Periodic Set
+  PERIODIC_SET = {
+    "storočne": TemporalCompose(MULTIPLY, YEARLY, 100),
+    "ročne": YEARLY,
+    "každoročne": YEARLY,
+    "celoročne": YEARLY,
+    "hodinový": HOURLY,
+    "nočný": NIGHTLY,
+    "denný": DAILY,
+    "týždenný": WEEKLY,
+    "mesačný": MONTHLY,
+    "štvrťročný": QUARTERLY
+  }
+  $PeriodicSetRegex = CreateRegex(Keys(PERIODIC_SET))
+  { pattern: ( /.*($PeriodicSetRegex)/ ),
+    matchWithResults: TRUE,
+    action: Tag($0, "PeriodicSet", PERIODIC_SET[Lowercase($$0.matchResults[0].word.group(1))]) }
+
+  ########################################################################################################################
+
+  ENV.defaults["stage"] = 1
+  ENV.defaults["ruleType"] = "text"
+
+  # Durations: 3-months old   or   three-months old
+  { text: /(\d+) ($TEUnits)(e|y)?([-\s]starý)?/ => Duration( TIMEUNIT_MAP[Lowercase($2)], $1 ) }
+  { text: /($BasicNumTerm) ($TEUnits)(e|y)?([-\s]starý)?/ =>
+           Duration( TIMEUNIT_MAP[Lowercase($2)], BASIC_NUMBER_MAP[Lowercase($1)] ) }
+
+  # Durations
+  ENV.defaults["ruleType"] = "tokens"
+  { ([{lemma:"rok"}]|/roky?/) => YEAR }
+  { ([{lemma:"mesiac"}]|/mesiace?/) => MONTH }
+  { ([{lemma:"deň"}]|/dni|deň/) => DAY }
+  { ([{lemma:"hodina"}]|/hodiny|hodina|hod/) => HOUR }
+  { ([{lemma:"minúta"}]|/minúty|minúta|min/) => MINUTE }
+  { ([{lemma:"sekunda"}]|/sekundy|sekunda|sek/) => SECOND }
+  { ([{lemma:"milisekunda"}]|/milisekundy|milisekunda|ms/) => MILLIS }
+  { ([{lemma:"týždeň"}]|/týždne|týždeň/) => WEEK }
+  { ([{lemma:"polmesiac"}]|/polmesiace?/) => FORTNIGHT }
+  { ([{lemma:"štvrťrok"}]|/štvrťroky?/) => QUARTER }
+  { ([{lemma:"desaťročie"}]|/desaťroči[ae]/) => DECADE }
+  { ([{lemma:"storočie"}]|/storoči[ae]/) => CENTURY }
+  { ([{lemma:"tisícročie"}]|/tisícroči[ae]/) => MILLENNIUM }
+
+  # Time of Day
+  { ([{lemma:"ráno"}]|/ráno|rána/) => MORNING }
+  { ([{lemma:"popoludnie"}]|/popoludni[ae]/) => AFTERNOON }
+  { ([{lemma:"večer"}]|/večere?/) => EVENING }
+  { ([{lemma:"súmrak"}]|/súmraky?/) => DUSK }
+  { ([{lemma:"stmievanie"}]|/stmievani[ea]/) => TWILIGHT }
+  { ([{lemma:"úsvit"}]|/svitani[ea]|úsvit/) => DAWN }
+  { ([{lemma:"svitanie"}]|/svitani[ea]/) => SUNRISE }
+  { ([{lemma:"západ"}]|/západy?/) => SUNSET }
+  { ([{lemma:"poludnie"}]|/poldeň|poldne|poludni[ea]/) => NOON }
+  { ([{lemma:"polnoc"}]|/polnoci?/) => MIDNIGHT }
+  { ([{lemma:"olovrant"}]|/olovranty?/) => TEATIME }
+  { ([{lemma:"obed"}]|/obedy?/) => LUNCHTIME }
+  { ([{lemma:"večera"}]|/večer[ae]/) => DINNERTIME }
+  { ([{lemma:"deň"}]|/deň|dni/) => DAYTIME }
+  { ([{lemma:"noc"}]|/noci?/) => NIGHT }
+
+  # Seasons
+  { ([{lemma:"leto"}]|/let[oá]/) => SUMMER }
+  { ([{lemma:"zima"}]|/zim[ay]/) => WINTER }
+  { ([{lemma:"jeseň"}]|/jeseň|jesene/) => FALL }
+  { ([{lemma:"jar"}]|/jary?/) => SPRING }
+
+  # Relative times
+  { ([{lemma:"včera"}]|/včera|včerajšok|včerajšky/) => YESTERDAY }
+  { ([{lemma:"dnes"}]|/dnes|dnešok|dnešky/) => TODAY }
+  { ([{lemma:"zajtra"}]|/zajtra|zajtrajšok|zajtrajšky/) => TOMORROW }
+
+  # Day of Week
+  { ([{lemma:"pondelok"}]|/pondelok|pondelky/) => MONDAY }
+  { ([{lemma:"utorok"}]|/utorok|utorky/) => TUESDAY }
+  { ([{lemma:"streda"}]|/stred[ay]/) => WEDNESDAY }
+  { ([{lemma:"štvrtok"}]|/štvrtok|štvrtky/) => THURSDAY }
+  { ([{lemma:"piatok"}]|/piatok|piatky/) => FRIDAY }
+  { ([{lemma:"sobota"}]|/sobot[ay]/) => SATURDAY }
+  { ([{lemma:"nedeľa"}]|/nedeľa|nedele?/) => SUNDAY }
+  { (/pon\.?/) => MONDAY }
+  { (/ut\.?/) => TUESDAY }
+  { (/str\.?/) => WEDNESDAY }
+  { (/št\.?/) => THURSDAY }
+  { (/pia\.?/) => FRIDAY }
+  { (/sob\.?/) => SATURDAY }
+  { (/ne\.?/) => SUNDAY }
+
+
+  { ([{lemma:"víkend"}]|/víkendy?/) => WEEKEND }
+  { ([{lemma:"pracovný"}] [{lemma:"týždeň"}]|/pracovný/ /týždeň/) => WEEKDAY }
+
+  # Month
+  { ([{lemma:"január"}]|/januáre?/) => JANUARY }
+  { ([{lemma:"február"}]|/februáre?/) => FEBRUARY }
+  { ([{lemma:"marec"}]|/marec|marce/) => MARCH }
+  { ([{lemma:"apríl"}]|/apríle?/) => APRIL }
+  { ([{lemma:"máj"}]|/máje?/) => MAY }
+  { ([{lemma:"jún"}]|/júny?/) => JUNE }
+  { ([{lemma:"júl"}]|/júle?/) => JULY }
+  { ([{lemma:"august"}]|/augusty?/) => AUGUST }
+  { ([{lemma:"september"}]|/september|septembre/) => SEPTEMBER }
+  { ([{lemma:"október"}]|/október|októbre/) => OCTOBER }
+  { ([{lemma:"november"}]|/november|novembre/) => NOVEMBER }
+  { ([{lemma:"december"}]|/december|decembre/) => DECEMBER }
+  { (/jan\.?/) => JANUARY }
+  { (/feb\.?/) => FEBRUARY }
+  { (/mar\.?/) => MARCH }
+  { (/apr\.?/) => APRIL }
+  { (/jun\.?/) => JUNE }
+  { (/jul\.?/) => JULY }
+  { (/aug\.?/) => AUGUST }
+  { (/sept?\.?/) => SEPTEMBER }
+  { (/okt\.?/) => OCTOBER }
+  { (/nov\.?/) => NOVEMBER }
+  { (/dec\.?/) => DECEMBER }
+
+  { ruleType: "filter",
+	over: NIL,
+    pattern: ( [ { temporal::IS_TIMEX_DATE } & {{ tokens[0].tag =~ /NN.*S/ }} ] ),
+    result: MakePeriodicTemporalSet($0[0].temporal.value)
+  }
+
+  ########################################################################################################################
+
+  ENV.defaults["ruleType"] = "tokens"
+  ENV.defaults["priority"] = 0
+  ENV.defaults["locale"] = "en"
+
+  // Military times with time zones from http://www.timeanddate.com/library/abbreviations/timezones/military/
+   MILITARY_TIME_ZONE_MAP = {
+      "A": 1,
+      "B": 2,
+      "C": 3,
+      "D": 4,
+      "E": 5,
+      "F": 6,
+      "G": 7,
+      "H": 8,
+      "I": 9,
+      "K": 10,
+      "L": 11,
+      "M": 12,
+      "N": -1,
+      "O": -2,
+      "P": -3,
+      "Q": -4,
+      "R": -5,
+      "S": -6,
+      "T": -7,
+      "U": -8,
+      "V": -9,
+      "W": -10,
+      "X": -11,
+      "Y": -12,
+      "Z": 0
+   }
+
+   {
+     ruleType: "tokens",
+     pattern: ( (/(\d\d)(\d\d)([A-Z])/) ),
+     matchWithResults: TRUE,
+     result: { type: "Temporal",
+               value: IsoTime($$1.matchResults[0].word.group(1), $$1.matchResults[0].word.group(2), NIL).setTimeZone(
+                  MILITARY_TIME_ZONE_MAP[$$1.matchResults[0].word.group(3)] ) },
+     // Change to TRUE to support military time zones
+     active: FALSE
+   }
+
+  # ISO date/times
+  # TODO: Support other timezone formats
+  { ruleType: "time", pattern: /yyyy-?MM-?dd-?'T'HH(:?mm(:?ss([.,]S{1,3})?)?)?(Z)?/ }
+  { ruleType: "time", pattern: /yyyy-MM-dd/ }
+  { ruleType: "time", pattern: /'T'HH(:?mm(:?ss([.,](S{1,3}))?)?)?(Z)?/ }
+  # Tokenizer "sometimes adds extra slash
+  { ruleType: "time", pattern: /yyyy\\?\/MM\\?\/dd/ }
+  { ruleType: "time", pattern: /MM?\\?\/dd?\\?\/(yyyy|yy)/ }
+  { ruleType: "time", pattern: /MM?-dd?-(yyyy|yy)/ }
+  { ruleType: "time", pattern: /HH?:mm(:ss)?(Z)?/ }
+  { ruleType: "time", pattern: /yyyy-MM/ }
+
+  # Euro - Ambiguous pattern - interpret as dd.MM.yy(yy)
+  { ruleType: "time", pattern: /dd?\. ?MM?\. ?(yyyy|yy)/ }
+  #{ ruleType: "time", pattern: /dd?\.? MMMM (yyyy|yy)/ }
+  { ruleType: "time", pattern: /HH?''hmm/ }
+
+  # Timezones
+  { ruleType: "time", pattern: /zzz/, action: Tag(_, "TIMEZONE", TRUE) }
+  { ruleType: "time", pattern: /ZZZ/, action: Tag(_, "TIMEZONE", TRUE) }
+
+  # Birthdays
+  { ( [ { tag:NNP } ]+ [ { tag:POS } ] /narodeniny/ ) => SimpleTime($0) }
+
+  # Generic decade
+  { ( /the/? ( /\w+teen/ /$Decades/ ) )
+       => IsoDate( Concat( Format("%02d", $0[0].numcompvalue), DECADES_MAP[Lowercase($0[1].word)]), NIL, NIL)
+  }
+  { ( /the/? ( /$Decades/ ) )
+       => IsoDate( Concat("XX", DECADES_MAP[Lowercase($0[0].word)]) , NIL, NIL)
+  }
+  { (/the/?  /'/ /\d\d/ ) => IsoDate( Format( "XX%02d", $0[-1].numcompvalue), NIL, NIL) }
+  { (/the/?  /'/ /\d0s/ | /the/? /'\d0s/ ) => IsoDate( Replace($0[-1].word, /'?(\d)0s/, "XX$1X"), NIL, NIL) }
+  { (/the/? /\d\d\d0s/) => IsoDate( Replace($0[-1].word, /(\d\d\d)0s/, "$1X"), NIL, NIL) }
+  { (/the/? /\d\d00s/) => IsoDate( Replace($0[-1].word, /(\d\d)00s/, "$1XX"), NIL, NIL) }
+  { (/the/? /mid-\d\d\d0s/) => IsoDate( Replace($0[-1].word, /mid-(\d\d\d)0s/, "$1X"), NIL, NIL) }
+  { (/the/? /mid-\d\d00s/) => IsoDate( Replace($0[-1].word, /mid-(\d\d)00s/, "$1XX"), NIL, NIL) }
+
+  #SVK
+  #{ (/\d\d?\.? ?(januára|január) ?\d\d\d?\d?/) => IsoDate(NIL, NIL, NIL)}
+  { ( /\d\d?\.? ?($mesiace) ?\d\d\d?\d?/) => IsoDate(Replace($0[0].word,/\d\d?\.? ?($mesiace) ?/,""),
+        MESIAC_MAP[Lowercase(Replace($0[0].word,/ ?\d\d?\.? ?/,""))] , Replace($0[0].word,/\.? ?($mesiace) ?\d\d\d?\d?/,""))}
+
+  # some century expressions
+  { ( ([{lemma:"každý"}]|/každé/ $NUM_ORD) ([{lemma:"storočie"}]|/storočie/) ) =>
+    MakePeriodicTemporalSet(CENTURY, GetTag($1[0], "PTS.quant"), GetTag($1[0], "PTS.multiple") ) }
+
+  #{ ( /the/? ($NUM_ORD|$INT) /-/? ([{lemma:"storočie"}]|/storočie/) (/b\.?c\.?/)  )
+  { ( /the/? ($NUM_ORD) /-/? ([{lemma:"storočie"}]|/storočie/) (/pred Kr\.?/|/p?\.?n\.l\./)?  )
+	  => IsoDate(Format("-%02dXX", Subtract($1[0].numcompvalue, 1)), NIL, NIL)
+  }
+
+  # some quarter expressions - need to add year refs
+  { ( /the/? [{tag:JJ}]? ($NUM_ORD) /-/? [{tag:JJ}]? /quarter/ ) =>
+      TemporalCompose(CREATE, QUARTER_OF_YEAR, $1[0].numcompvalue) }
+  { text: /(\d+)(st|nd|rd|th)-quarter/ =>
+      TemporalCompose(CREATE, QUARTER_OF_YEAR, $1 )
+  }
+  { text: /($BasicOrdTerm)-quarter/ =>
+      TemporalCompose(CREATE, QUARTER_OF_YEAR, BASIC_ORDINAL_MAP[Lowercase($1)])
+  }
+
+  # (unit)ly
+  { ruleType: "tokens",
+#    pattern: ( (?m){1,3} /((pol|štvrť)\s*-?\s*)?(ročne|mesačne|týždne|denne|hodinovo|nočne)/ ),
+    pattern: ( (?m){1,3} /((pol|štvrť)\s*-?\s*)?($PeriodicSetRegex)/ ),
+    result: :case {
+			    $0[0].word =~ /pol.*/ => TemporalCompose(DIVIDE, GetTag($0[-1], "PeriodicSet"), 2),
+			    $0[0].word =~ /štvrť.*/ => TemporalCompose(DIVIDE, GetTag($0[-1], "PeriodicSet"), 4),
+			    :else => GetTag($0[-1], "PeriodicSet") }
+  }
+
+  # some interval expressions
+  { text: /\b(\d{4})\s*(?:-)\s*(\d{4})\b/ =>
+          TimeRange( IsoDate($1, NIL, NIL), IsoDate($2, NIL, NIL) ) }
+  { ( /víkend/ ) => WEEKEND }
+
+
+  # Year
+  { ( /rok/ ($POSSIBLE_YEAR) )
+      => :case {
+            $1[0].word =~ /'.*/ => IsoDate( GetTag($1[0], "YEAR"), NIL, NIL ),
+            :else => IsoDate( GetTag($1[0], "YEAR"), NIL, NIL, GetTag($1[0], "YEAR_ERA"), TRUE)
+         }
+  }
+
+  { ( ($POSSIBLE_YEAR) & [ { ner::IS_NIL } | { ner:DATE } | { ner:O } | { ner:NUMBER } ]+ )
+      => :case {
+            $1[0].word =~ /'.*/ => IsoDate( GetTag($1[0], "YEAR"), NIL, NIL ),
+            :else => IsoDate( GetTag($1[0], "YEAR"), NIL, NIL, GetTag($1[0], "YEAR_ERA"), TRUE)
+         }
+  }
+
+  { ( ($TIMEOFDAY) ) => $1[0].temporal.value }
+
+  { ( /dobr[éúý]/ /ráno|večer|deň|popoludnie|noc/ ) => NON_TEMPORAL }
+
+  ########################################################################################################################
+  # Compositional rules
+
+  ENV.defaults["ruleType"] = "composite"
+
+  { name: "temporal-composite-6b",
+    priority: 20,
+    pattern: ( ( $REL_MOD ) ( [ $hasTemporal & !{ temporal::IS_TIMEX_SET } ] ) ),
+	result: RelativeTime( GetTag($1[0], "TemporalOp"), $2[0].temporal.value )
+  }
+
+  ########################################################################################################################
+  # Composite Duration rules
+
+  ENV.defaults["priority"] = 10
+  ENV.defaults["stage"] = 2
+
+  # Duration (start, end, unit, range_start, range_end)
+  # Duration rules
+  # i.e. "the past twenty four years"
+  { pattern: ( /posledných|predchádzajúcich/ (?: ($NUM) /to|-/ )? ($NUM)? ([ { temporal::IS_TIME_UNIT } ]) ),
+	result: Duration($1,$2,$3,TIME_UNKNOWN,TIME_REF)
+  }
+
+  { pattern: ( /následujúcich|následujúce/ (?: ($NUM) /to|-/ )? ($NUM)? ([ { temporal::IS_TIME_UNIT } ]) ),
+	result: Duration($1,$2,$3,TIME_REF,TIME_UNKNOWN)
+  }
+
+  # i.e. "another 3 years", "another thirteen months"
+  { pattern: ( /ešte|ďalšie/ (?: ($NUM) /to|-/ )? ($NUM)? ([ { temporal::IS_TIME_UNIT } ]) ),
+	result: Duration($1, $2, $3, TIME_REF, TIME_UNKNOWN) }
+
+  # i.e. "the 2 months following the crash", "for ten days before leaving"
+  # TODO: NEED TO FIX THIS, right now it doesn't include "the crash" or "leaving"
+  # ...need to be able to recognize NPs and VPs using POS tags
+  { pattern: ( (?: ($NUM) /do|-/ )? ($NUM) ([ { temporal::IS_TIME_UNIT } ]) ),
+	result: Duration($1, $2, $3) }
+
+  # i.e. "the first 9 months of 1997"
+  { pattern: ( [{lemma:"prvý"}]|[{lemma:"počiatočný"}]|[{lemma:"posledný"}]|[{lemma:"finálny"}]|/prvý|počiatočný|posledný|finálny/ (?: ($NUM) /do|-/ )? ($NUM)? ([ { temporal::IS_TIME_UNIT } ]) ),
+	result: Duration( $1, $2, $3 ) }
+  { pattern: ( /prvá|počiatočná|posledná|druhá/ /polovica/ ([ { temporal::IS_TIME_UNIT } ]) ),
+	result: Duration( $1, $2, $3 ) }
+
+  # i.e. "the fifth straight year", "the third straight month in a row", "the ninth day consecutively"
+  # i.e. "the eighth consecutive day in a row"
+  # i.e. "the twenty ninth day straight"
+  { pattern: ( ($NUM_ORD) /následujúcich/ ([ { temporal::IS_TIME_UNIT } ]) (?: /v/ /rade/ )? ),
+	result: Duration (NIL, $1, $2, TIME_UNKNOWN, TIME_REF) }
+
+  # hundreds of years
+  { pattern: ( (/(desať|desiatky|sto|stovky|tisíce?|milióny?|miliarda|miliardy|trilión|trilióny)/) ([ { temporal::IS_TIME_UNIT } ]) ),
+	result: Duration ( NIL, $1, $2) }
+
+  # i.e. "recent weeks", "several days"
+  { pattern: ( (/posledné|niekoľko/) /-/? ([ { temporal::IS_TIME_UNIT } ]) ),
+	result: InexactDuration( Duration(NIL, NIL, $2) ) }
+
+  # i.e. 3-months old, "four years", "four minutes"
+  { pattern: ( ($NUM) /to|-/ ($NUM) [ "-" ]? ([ { temporal::IS_TIME_UNIT } ]) (?: [ "-" ]? /starý/ )? ),
+    result: Duration( $1, $2, $3) }
+  { pattern: ( ($NUM) [ "-" ]? ([ { temporal::IS_TIME_UNIT } ]) (?: [ "-" ]? /starý/ )? ),
+	result: Duration( NIL, $1, $2 ) }
+
+  # i.e. "a decade", "a few decades", NOT "a few hundred decades"
+  { pattern: ( (?: /posledné|ďalšie|následujúce|predchádzajúce/ )? (/niekoľko/ ) ([ { temporal::IS_TIME_UNIT } ]) ),
+ 	result: Duration ( Duration( NIL, NIL, $2 ), 2 ) }
+  { pattern: ( (?: /posledné|ďalšie|následujúce|predchádzajúce/ )? (/niekoľko/ ) ([ { temporal::IS_TIME_UNIT } ]) ),
+ 	result: InexactDuration ( Duration( NIL, NIL, $2 ) ) }
+  { pattern: ( (?: /posledné|ďalšie|následujúce|predchádzajúce/ )? (/pár/) ([ { temporal::IS_TIME_UNIT } ]) ),
+ 	result: InexactDuration ( Duration( NIL, NIL, $2 ) ) }
+
+  { pattern: ( [ { tag:JJ } ]? ([ { temporal::IS_TIME_UNIT } & { word:/.*s/ } ]) ),
+    priority: -1,
+    result:	InexactDuration( $1[0].temporal.value ) }
+
+  { pattern: ( ([ { temporal::IS_TIME_UNIT } ]) ),
+    result: Duration( $1[0].temporal.value, 1) }
+
+  ######################################################################################################################
+  # Compositional date rules
+
+  ENV.defaults["priority"] = 0
+
+  { ( ($FREQ_MOD|/the/)? ($NUM_ORD) ([ { temporal::IS_TIME_UNIT } | { temporal::DAYOFWEEK } ]) ) =>
+    :case{
+        # Only attach ordinal to time if not prefixed by frequency modifier (e.g. every)
+        ($1 == NIL || $1 =~ ( /the/ ) ) => OrdinalTime($3[0].temporal.value, $2[0].numcompvalue),
+        # Return NIL otherwise - we have other patterns that handle sets (every 3rd months) later
+        :else => NIL
+    }
+  }
+
+  { name: "composite-date-expression-1a",
+	priority: 1,
+	pattern: ( (/každý/ $NUM_ORD) (?$month [ { temporal::MONTH }]) ),
+	result: MakePeriodicTemporalSet(
+	            $month[0].temporal,
+	            GetTag($1[0], "PTS.quant"), GetTag($1[0], "PTS.multiple") ) }
+
+  { name: "composite-date-expression-1",
+	priority: 1,
+	pattern: ( ( (?$day $NUM_ORD & $INT1TO31) (?$day /\d\d?/ & $INT1TO31) )?
+	           (?$month [ { temporal::MONTH } ])
+			   (?$day $NUM_ORD|/\d\d?/ & $INT1TO31)?
+			   (?: /of|,/? (?$year $POSSIBLE_YEAR))? ),
+	result: TemporalCompose(INTERSECT,
+	           $year[0].temporal,
+	           IsoDate(NIL, $month[0].temporal.value.month, $day[0].numcompvalue))
+  }
+
+  { name: "composite-date-expression-1b",
+	pattern: ( /the/? /ides/ /of|in/? (?$month [ { temporal::MONTH } ]) (?: /of|,/? (?$year $POSSIBLE_YEAR))? ),
+	result: TemporalCompose(INTERSECT,
+	         $year[0].temporal,
+	         IsoDate(NIL,
+                 $month[0].temporal.value.month,
+                 :case {
+                    $month[0].temporal.value.month == 3 => 15,
+                    $month[0].temporal.value.month == 5 => 15,
+                    $month[0].temporal.value.month == 7 => 15,
+                    $month[0].temporal.value.month == 10 => 15,
+                    :else => 13
+                 }
+                ))
+   }
+
+  { name: "composite-date-expression-1c",
+	pattern: ( /the/? /nones/ /of|in/? (?$month [ { temporal::MONTH } ]) (?: /of|,/? (?$year $POSSIBLE_YEAR))? ),
+	result: IsoDate(
+             GetTag($year[0].numtokens[0], "YEAR"),
+			 $month[0].temporal.value.month,
+	         :case {
+	            $month[0].temporal.value.month == 3 => 7,
+	            $month[0].temporal.value.month == 5 => 7,
+	            $month[0].temporal.value.month == 7 => 7,
+	            $month[0].temporal.value.month == 10 => 7,
+				:else => 5
+             }
+            )
+   }
+
+  { name: "composite-date-expression-2",
+	pattern: ( /the/? (?$mod /beginning|start|middle|mid-?|end/ ) /of|in/? (?$date [ { temporal::IS_TIMEX_DATE } ]) ),
+	result: TemporalCompose(ADD_MODIFIER, $date[0].temporal, GetTag($mod[0], "Modifier") ) }
+
+  { name: "composite-date-expression-2a1",
+	pattern: ( /the/? (?$mod /first/ /half/) /of/ (?$date [ { temporal::IS_TIMEX_DATE } ]) ),
+	result: TemporalCompose(ADD_MODIFIER, $date[0].temporal, "EARLY" ) }
+
+  { name: "composite-date-expression-2a2",
+	pattern: ( /the/? (?$mod /second|last|latter/ /half/) /of/ (?$date [ { temporal::IS_TIMEX_DATE } ]) ),
+	result: TemporalCompose(ADD_MODIFIER, $date[0].temporal, "LATE" ) }
+
+  { name: "composite-date-expression-2b",
+	pattern: ( /the/? (?$date [ { temporal::IS_TIMEX_DATE } ]) (/'/ /s/ | /'s/ )? (?$mod /beginning|end/) ),
+	result: TemporalCompose(ADD_MODIFIER, $date[0].temporal, GetTag($mod[0], "Modifier") ) }
+
+  { name: "composite-date-expression-3",
+	pattern: ( /the/? (?$weeknum ($NUM_ORD|last)) (?$week /week(end)?/ ) /of|in/? [ { temporal::IS_TIMEX_DATE } ] ),
+	result: TemporalCompose(
+              IN,
+			  $0[-1].temporal,
+              TemporalCompose(
+			     CREATE,
+                 $week[0].temporal,
+			     :case {
+			       $weeknum =~ (/last/) => -1,
+			       :else => $weeknum[0].numcompvalue
+                 } ))
+  }
+
+  { name: "composite-date-expression-3b",
+	pattern: ( /the/? (?$week /week(end)?/ ) /of|in/? [ { temporal::IS_TIMEX_DATE } ] ),
+	result: TemporalCompose(
+              INTERSECT,
+			  $0[-1].temporal,
+			  $week[0].temporal)
+  }
+
+  { name: "composite-date-expression-3c",
+	pattern: ( ( [ { temporal::DAYOFWEEK } ] ) /the/? (?$day $NUM_ORD) ),
+	result: TemporalCompose(
+              INTERSECT,
+			  $1[0].temporal,
+			  IsoDate(NIL, NIL, $day[0].numcompvalue))
+  }
+
+  { name: "composite-date-expression-6",
+    pattern: ( ([ { temporal::IS_TIMEX_DATE } ]) (morning|afternoon|evening|night) ),
+	result: TemporalCompose(INTERSECT, $1[0].temporal, $2[0].temporal)
+  }
+
+  { name: "composite-date-expression-7a",
+    pattern: ( (?: /the/? /day/ (/before/|/prior/ /to/) ([ { temporal::IS_TIMEX_DATE } ]) ) ),
+	result: TemporalCompose(
+	          PLUS,
+			  $2[0].temporal,
+			  TemporalCompose(
+			   MULTIPLY,
+			   DAY,
+			   -1))
+  }
+
+  { name: "composite-date-expression-7b",
+    pattern: ( (?: /the/? /day/ (/after/) ([ { temporal::IS_TIMEX_DATE } ]) ) ),
+	result: TemporalCompose(
+	          PLUS,
+			  $2[0].temporal,
+			  DAY)
+  }
+
+  { name: "composite-date-expression-8",
+    pattern: ( /the/ [ { tag:JJ } ]* ([ { temporal::IS_TIME_UNIT }
+	                                     & !{ word:/.*s/ } ] )),
+	result: RelativeTime( THIS, $1[0].temporal.value )
+  }
+
+  ########################################################################################################################
+  # Composite time expressions
+
+  { name: "composite-time-expression-1a",
+    active: TRUE,
+    pattern: (   (?: (?$time [ { temporal::IS_TIMEX_TIME } ]) | (?$hour [ $INT & { numcompvalue<=24 } ]))
+                 (?$context /in/ /the/ /morning/ | /a\.?m\.?/)
+             ),
+	result: :case {
+			    $time => TemporalCompose(INTERSECT, $time[0].temporal.value, AM),
+	            $hour[0].numcompvalue == 12 => IsoTime(0, 0, NIL),
+				:else => IsoTime($hour[0].numcompvalue, 0, NIL)
+			}
+  }
+
+  { name: "composite-time-expression-1b",
+    active: TRUE,
+    pattern: (   (?: (?$time [ { temporal::IS_TIMEX_TIME } ]) | (?$hour [ $INT & { numcompvalue<=24 } ]))
+                 (?$context /in/ /the/ /afternoon|evening/| /at/ /night/| /p\.?m\.?/)
+             ),
+	result: :case {
+			    $time => TemporalCompose(INTERSECT, $time[0].temporal.value, PM),
+	            $hour[0].numcompvalue < 12 => IsoTime(Add($hour[0].numcompvalue, 12), 0, NIL),
+	            (  ($hour[0].numcompvalue == 12) && ($context =~ ( []* /evening|night/)) )
+				   => TemporalCompose(OFFSET_EXACT, IsoTime(0, 0, NIL), DAY),
+				:else => IsoTime($hour[0].numcompvalue, 0, NIL)
+			}
+  }
+
+  { name: "composite-time-expression-1c",
+    active: TRUE,
+    pattern: (   (?: (?$time [ { temporal::IS_TIMEX_TIME } ]) | (?$hour [ $INT & { numcompvalue==12 } ]))
+                 (?$context /midnight/)
+             ),
+	result: :case {
+			    $time[0].temporal.value.hour == 12 => MIDNIGHT,
+	            $hour[0].numcompvalue == 12 => MIDNIGHT,
+				:else => NIL
+			}
+  }
+
+  { name: "composite-time-expression-2",
+    pattern: (  (?$minute /a/? /quarter/ | /a/? /half/ | [ $INT & { numcompvalue<=60 } ] /minutes?/? )
+		        (?$rel /past|after|before|to|until/)
+				(?: (?$time [ { temporal::IS_TIMEX_TIME } ]) | (?$hour [ $INT & { numcompvalue<=24 } ]))
+             ),
+	result: TemporalCompose(
+	          :case {
+			    $rel[0].word =~ /past|after/ => PLUS,
+				:else => MINUS
+			  },
+			  :case {
+			    $time => $time[0].temporal,
+				:else => IsoTime($hour[0].numcompvalue, 0, NIL)
+			  },
+			  Duration(
+				MINUTE,
+			    :case {
+			       $minute =~ ( /a/? /quarter/ ) => 15,
+			       $minute =~ ( /a/? /half/ ) => 30,
+			       :else => $0[0].numcompvalue
+			    }
+			  )
+			) }
+
+  { pattern: ( ( /\d\d\d\d/ | $NUM ) [ {tag:/RB/} ] [ {tag:/JJ/} ]+ [ {tag:/NNS/} & !($hasTemporal) ] ),
+    result: NON_TEMPORAL,
+    priority: -1 }
+  { pattern: ( ( /\d\d\d\d/ | $NUM ) [ {tag:/JJ/} ]* [ {tag:/NNS/} & !($hasTemporal) ] ),
+    result: NON_TEMPORAL,
+    priority: -1 }
+
+  ########################################################################################################################
+  # General compositional rules
+  ENV.defaults["stage"] = 3
+
+  { name: "temporal-composite-timezone1",
+    pattern: ( (?$time [ { temporal::IS_TIMEX_TIME } ]) (?$timezone [ {{ tags["TIMEZONE"] }} ])  ),
+    result: TemporalCompose(INTERSECT, $time[0].temporal, $timezone[0].temporal)
+  }
+
+  { name: "temporal-composite-timezone2",
+    pattern: ( (?$time [ { temporal::IS_TIMEX_TIME } ]) "-LRB-" (?$timezone [ {{ tags["TIMEZONE"] }} ]) "-RRB-" ),
+    result: TemporalCompose(INTERSECT, $time[0].temporal, $timezone[0].temporal)
+  }
+
+  { name: "temporal-composite-1",
+    pattern: ( /the/?
+	 (( [ $hasTemporal ] ) /,|of|in/? ( [ { temporal::IS_TIMEX_DATE } | { temporal::IS_TIMEX_TIME } ] ) |
+      ( [ { temporal::IS_TIMEX_DATE } ] ) /at/  ( [ { temporal::IS_TIMEX_TIME } ] ) |
+      ( [ { temporal::IS_TIMEX_TIME } | { temporal::IS_TIMEX_DURATION } ] ) /on/  ( [ { temporal::IS_TIMEX_DATE } ] | [ { temporal::IS_TIMEX_SET } ]) |
+      ( [ { temporal::IS_TIMEX_DATE } | { temporal::IS_TIMEX_TIME } ] ) (/'s/ | /'/ /s/) ( [ $hasTemporal ] )) ),
+	result: TemporalCompose(INTERSECT, $1[0].temporal, $1[-1].temporal)
+  }
+
+  { name: "temporal-composite-2",
+    pattern: ( ( [ { temporal::IS_TIMEX_DATE } | { temporal::IS_TIMEX_TIME } ] )  (/today|tonight/) ),
+	result: $0[0].temporal.value
+  }
+
+  { name: "temporal-composite-3",
+    pattern: ( ( [ { temporal::IS_TIMEX_DURATION } ] )  (/before|from|since|after/ | /prior/ /to/)
+	   ( [ ({ temporal::IS_TIMEX_TIME }  |  { temporal::IS_TIMEX_DATE }) ] ) ),
+	result: TemporalCompose(
+	          OFFSET, $0[-1].temporal,
+			  TemporalCompose(
+			   MULTIPLY,
+			   $0[0].temporal,
+			   :case {
+			     $2 =~ (/before/|/prior/ /to/) => -1,
+			     :else => 1
+               } ))
+  }
+
+  # expand: timex later|earlier|late => one timex
+  { name: "temporal-composite-4",
+    pattern: ( ( [ { temporal::IS_TIMEX_DURATION } ] )  (/earlier|later|ago|hence/ | /from/ /now/) ),
+	result: TemporalCompose(OFFSET, TIME_REF,
+	         TemporalCompose( MULTIPLY, $0[0].temporal,
+			 :case {
+			   $2 =~ (/earlier/|/ago/) => -1,
+			   :else => 1
+             }))
+  }
+
+  # expand: timex later|earlier|late => one timex
+  { name: "temporal-composite-5",
+    pattern: ( ( [ $hasTemporal & !{ temporal::IS_TIMEX_DURATION } ] )
+               (/before|earlier|later|late|ago|hence/ | /from/ /now/) ),
+	result: $0[0].temporal.value }
+
+  { name: "temporal-composite-6a",
+    pattern: ( /the/? ( $EARLY_LATE_MOD ) ( [ $hasTemporal & !{ temporal::IS_TIMEX_SET } ] ) ),
+	result: TemporalCompose( ADD_MODIFIER, $2[0].temporal.value, GetTag($1[0], "Modifier") )
+  }
+
+  { name: "temporal-composite-6b",
+    priority: 4,
+    pattern: ( ( $REL_MOD ) ( [ $hasTemporal & !{ temporal::IS_TIMEX_SET } ] ) ),
+	result: RelativeTime( GetTag($1[0], "TemporalOp"), $2[0].temporal.value )
+  }
+
+  { name: "temporal-composite-6b1",
+    priority: 4,
+    pattern: ( (  /no/ /more/ /than/ | /at/ /most/ | /up/ /to/ )
+	           ( [ { temporal::IS_TIMEX_DURATION } & !{{ temporal.value.mod }} ] ) ),
+    result: TemporalCompose( ADD_MODIFIER, $0[-1].temporal.value, "EQUAL_OR_LESS" )
+  }
+  { name: "temporal-composite-6b2",
+    priority: 4,
+    pattern: ( (  /more/ /than/ )
+	           ( [ { temporal::IS_TIMEX_DURATION } & !{{ temporal.value.mod }} ] ) ),
+    result: TemporalCompose( ADD_MODIFIER, $0[-1].temporal.value, "MORE_THAN" )
+  }
+  { name: "temporal-composite-6b3",
+    priority: 4,
+    pattern: ( (  /no/ /less/ /than/ | /at/ /least/ )
+	           ( [ { temporal::IS_TIMEX_DURATION } & !{{ temporal.value.mod }} ] ) ),
+    result: TemporalCompose( ADD_MODIFIER, $0[-1].temporal.value, "EQUAL_OR_MORE" )
+  }
+  { name: "temporal-composite-6b4",
+    priority: 4,
+    pattern: ( (  /less/ /than/ )
+	           ( [ { temporal::IS_TIMEX_DURATION } & !{{ temporal.value.mod }} ] ) ),
+    result: TemporalCompose( ADD_MODIFIER, $0[-1].temporal.value, "LESS_THAN" )
+  }
+
+  # expand: (the|this|about|nearly|early|later|earlier|late) timex => one timex
+  # expand: more than| up to| less than timex => one timex
+  { name: "temporal-composite-6c",
+    pattern: ( ( /this|about|nearly|early|later|earlier|late/ )
+	           ( [ $hasTemporal & !{ temporal::IS_TIMEX_SET } ] ) ),
+    result: $0[-1].temporal.value
+  }
+
+  { name: "temporal-composite-7a",
+    pattern: ( /every/ ( [ $hasTemporal & !{ temporal::IS_TIMEX_SET } ] ) ),
+	result: MakePeriodicTemporalSet($1[0].temporal, "every", 1 )
+  }
+
+  { name: "temporal-composite-7b",
+#    pattern: ( ( $FREQ_MOD ) ( [ $hasTemporal & !{ temporal::IS_TIMEX_SET } ] ) ),
+    pattern: ( ( $FREQ_MOD ) ( [ $hasTemporal ] ) ),
+	result: MakePeriodicTemporalSet($2[0].temporal, GetTag($1[0], "PTS.quant"), GetTag($1[0], "PTS.multiple") )
+  }
+
+  { name: "temporal-composite-8:ranges",
+	active: options."markTimeRanges",
+    pattern: ( /from/? ( [ { temporal::IS_TIMEX_TIME } | { temporal::IS_TIMEX_DATE } ] ) /to|-/ ( [ { temporal::IS_TIMEX_TIME } |   {   temporal::IS_TIMEX_DATE } ] ) ),
+	result: TimeRange( $1[0].temporal.value, $2[0].temporal.value ) }
+
+  { name: "temporal-composite-9",
+	pattern: ( [{ temporal::IS_TIMEX_TIME }] (?: /sharp/|/exactly/|/precisely/|/on/ /the/ /dot/) ),
+    result: $0[0].temporal.value }
+
+  ########################################################################################################################
+
+  ENV.defaults["stage"] = 4
+  ENV.defaults["ruleType"] = "tokens"
+
+  # Vague times
+  { ( /v/? /nedávnej/?  [{lemma:"minulosť"}]| /nedávno/ ) => TIME_PAST }
+  #{ pattern: ( /v/ /tom/ /čase/ ), matchedExpressionGroup: 1, result: TIME_PAST }
+  { ( /minule|kedysi|medieval|predtým/ ) => TIME_PAST }
+  #{ ( /past|once|medieval|previously/ ) => TIME_PAST }
+  { ( /súčastnosť|aktuálne|teraz|práve / | /v/ /súčastnosti|prítomnosti/) => TIME_PRESENT }
+  #{ ( /present|current|currently/ | /right/? /now/ ) => TIME_PRESENT }
+  { (  /v/? /blízkej/? [{lemma:"budúcnosť"}] ) => TIME_FUTURE }
+
+  # Final rules to determine how to resolve date
+  ENV.defaults["ruleType"] = "composite"
+  ENV.defaults["stage.limitIters"] = 1
+  { pattern: ( [ { temporal::IS_TIMEX_DURATION } & {{ tokens =~ ( /.*s/ ) }} ] ),
+    result:	InexactDuration( $0[0].temporal.value ) }
+
+  {  pattern: ( [ { tag:/VBD/ } | /have/ ] []{0,2} [ $hasTemporal ] ),
+     action: VTag( $0[-1].temporal.value, "resolveTo", RESOLVE_TO_PAST )
+  }
+  {  pattern: ( [ $hasTemporal ] []{0,2} [ { tag:/VBD/ } | /have/ ] ),
+     action: VTag( $0[0].temporal.value, "resolveTo", RESOLVE_TO_PAST )
+  }
+  {  pattern: ( (/would/ | /could/ | /should/ | /will/ | /going/ /to/ | /'/ /ll/ | /'ll/ )
+                []{0,2} [ $hasTemporal ]
+              ),
+     action: VTag( $0[-1].temporal.value, "resolveTo", RESOLVE_TO_FUTURE )
+  }
+  {  pattern: ( [ $hasTemporal ] []{0,2}
+                (/would/ | /could/ | /should/ | /will/ | /going/ /to/ | /'/ /ll/ | /'ll/ ) ),
+     action: VTag( $0[0].temporal.value, "resolveTo", RESOLVE_TO_FUTURE )
+  }
+
+ ########################################################################################################################
+  # Final filtering rules
+
+  ENV.defaults["ruleType"] = "filter"
+  ENV.defaultTokensAnnotationKey = tokens
+
+  {  pattern: ( $NUM /to/ $NUM) }
+  {  pattern: ( /(quarter|sun)s?/ ) }
+  {  pattern: ( [ { word:/(fall|spring|second|march|may|sat|sun|min)s?/ } & !{ tag:/NN.*/ } ] )  }
+  {  pattern: ( /the/ [ { word:/second/ } & !{ tag:/NN.*/ } ] )  }
+  {  pattern: ( [ { word:/((twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)-)?second/ } ] )  }
+  {  pattern: ( [ {{ temporal.value == NON_TEMPORAL }} ] ), over: NIL }
+
+  # Reject anything that is just a timezone
+  {  pattern: ( [ {{ tags["TIMEZONE"] }} ] ), over: NIL  }
+

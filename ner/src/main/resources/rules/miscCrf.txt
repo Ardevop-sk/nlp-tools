@@ -1,0 +1,11 @@
+( [{ner:Adresa}] [{ner:Adresa}|{word:/[0-9]+/}|{word:","}]{1,} )	Adresa
+( [{ner:Osoba}] [{ner:Adresa}] [{ner:Osoba}] )	Osoba
+( [{ner:Osoba}] [{ner:Osoba}] [{word:/[\p{L}]+/}] )	Osoba
+( [{ner:Osoba}]{1,} "," [{ner:Osoba}]{1,} )	Osoba
+( [{ner:Organizacia}]{1,} "," [{ner:Organizacia}]{1,} )	Organizacia
+( [{ner:Adresa}]{1,} [{word:/[0-9]+/}] "," [{ner:Adresa}]{1,} )	Adresa
+( [{ner:Sud}] [{lemma:"súd"}] [{ner:Adresa}] [{word:/[IV]+/}]{0,1} )	Sud
+( [{ner:Sud}] [{lemma:"súd"}] [{ner:Sud}] [{word:/[IV]+/}]{0,1} )	Sud
+( [{ner:Adresa}]{1,} [{word:"č."}] [{ner:NUMBER}|{word:/[0-9]+\/[0-9\p{L}]+/}] "," [{ner:Adresa}]{1,} )	Adresa
+( [{ner:Adresa}]{1,} "." [{ner:Adresa}]{1,} )	Adresa
+( "IČO" ":"{0,1} ([{word:/[0-9\p{Zs}]*/}]) )	ICO
